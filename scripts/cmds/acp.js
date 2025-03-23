@@ -10,7 +10,7 @@ module.exports = {
     role: 2,
     shortDescription: "accept users",
     longDescription: "accept users",
-    category: "Utility",
+    category: "admin",
   },
 
   onReply: async function ({ message, Reply, event, api, commandName }) {
@@ -112,12 +112,11 @@ module.exports = {
     let i = 0;
     for (const user of listRequest) {
       i++;
-      msg += (`\n${i}. Name: ${user.node.name}`
-        + `\nID: ${user.node.id}`
-        + `\nUrl: ${user.node.url.replace("www.facebook", "fb")}`
-        + `\nTime: ${moment(user.time * 1009).tz("Asia/Manila").format("DD/MM/YYYY HH:mm:ss")}\n`);
+      msg += (`\n${i}.♡︎𝑁𝐴𝑀𝐸♡︎: ${user.node.name}`
+        + `\n     ➥𝐼𝐷: ${user.node.id}`
+        + `\n𝑇𝐼𝑀𝐸: ${moment(user.time * 1009).tz("Asia/Manila").format("DD/MM/YYYY HH:mm:ss")}\n`);
     }
-    api.sendMessage(`${msg}\nReply to this message with content: <add | del> <comparison | or "all"> to take action`, event.threadID, (e, info) => {
+    api.sendMessage(`${msg}\n\n𝑅𝑒𝑝𝑙𝑦 𝑡𝑜 𝑡ℎ𝑖𝑠 𝑚𝑎𝑠𝑠𝑎𝑔𝑒 𝑤𝑖𝑡ℎ 𝑡ℎ𝑒 𝑐𝑜𝑛𝑡𝑒𝑛𝑡: [𝑎𝑑𝑑 | del] [𝑁𝑢𝑚𝑏𝑒𝑟 𝑜𝑓 𝑙𝑖𝑠𝑡 𝑜𝑟 𝑎𝑙𝑙] 𝑇𝑜 𝑡𝑎𝑘𝑒 𝑎𝑐𝑡𝑖𝑜𝑛`, event.threadID, (e, info) => {
       global.GoatBot.onReply.set(info.messageID, {
         commandName,
         messageID: info.messageID,

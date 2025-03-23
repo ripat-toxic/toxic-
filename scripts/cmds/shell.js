@@ -1,14 +1,15 @@
+const { GoatWrapper } = require("fca-liane-utils");
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 
 module.exports = {
   config: {
     name: 'shell',
-    aliases: ['$', '×'],
+    aliases: ['$', '%'],
     version: '1.0',
     author: '404',
     role: 2,
-    category: 'utility',
+    category: 'owner',
     shortDescription: {
       en: 'Executes terminal commands.',
     },
@@ -20,10 +21,10 @@ module.exports = {
     },
   },
   onStart: async function ({ api, args, message, event }) {
-    const permission = ["100068909067279"];
+    const permission = global.GoatBot.config.owner;
     if (!permission.includes(event.senderID)) {
       api.sendMessage(
-        "~Tumar ki lojjah sorom nai ?!🐐🤌",
+        "Dekh dekh koto boro abal aiche dek sobhai 🦆🙌",
         event.threadID,
         event.messageID
       );
@@ -50,3 +51,6 @@ module.exports = {
     }
   },
 };
+
+const wrapper = new GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: true });

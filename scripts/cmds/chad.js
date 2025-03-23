@@ -13,7 +13,7 @@ module.exports = {
         role: 0,
         shortDescription: "giga-chad-face",
         longDescription: "",
-        category: "image",
+        category: "fun",
         guide: {
 			vi: "{pn} [@tag",
 			en: "{pn} [@tag]"

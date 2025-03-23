@@ -12,7 +12,7 @@ module.exports = {
     role: 0,
     shortDescription: { en: "Chat with Anya Forger" },
     longDescription: { en: "Chat with Anya Forger. Now powered by Redwans API!" },
-    category: "ai",
+    category: "tools",
     guide: { en: "{p}{n} [text]" },
   },
 

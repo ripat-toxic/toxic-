@@ -1,95 +1,82 @@
-const axios = require('axios');
-const fs = require('fs-extra');
+const axios = require("axios");
+const fs = require("fs-extra");
+const path = require("path");
 
 module.exports = {
   config: {
-    name: 'pinterest',
-    aliases: ["pint", "pinter", "pin"],
-    version: '1.2',
-    author: 'Samuel',
-    countDown: 5,
+    name: "pin",
+    aliases: ["pinterest"],
+    version: "2.0",
+    author: "Modified by hasan",
     role: 0,
-    category: 'Image Search',
-    shortDescription: {
-      en: "Search for images on Pinterest based on a keyword",
-    },
-    longDescription: {
-      en: "This command searches for images on Pinterest based on a provided keyword.",
-    },
-    guide: {
-      en: "{pn} 'keyword' -'number of search results'\nExample: {pn} cute -10\nIf no number is provided, the command will return the first 5 images.",
-    },
+    countDown: 5,
+    shortDescription: { en: "Search images on Pinterest" },
+    category: "image",
+    guide: { en: "{prefix}pin <search query> -<number of images>" }
   },
 
-  onStart: async function ({ api, args, event , message }) {
-    const { getPrefix } = global.utils;
-       const p = getPrefix(event.threadID);
-    const approvedmain = JSON.parse(fs.readFileSync(`${__dirname}/assist_json/approved_main.json`));
-    const bypassmain = JSON.parse(fs.readFileSync(`${__dirname}/assist_json/bypass_id.json`));
-    const bypassmUid = event.senderID;
-    if (bypassmain.includes(bypassmUid)) {
-      console.log(`User ${bypassmUid} is in bypass list. Skipping the main approval check.`);
-    } else {
-      const threadmID = event.threadID;
-      if (!approvedmain.includes(threadmID)) {
-        const msgSend = message.reply(`cmd 'Pinterest' is locked 🔒...\n Reason : Bot's main cmd \nyou need permission to use all main cmds.\n\nType ${p}requestMain to send a request to admin`);
-        setTimeout(async () => {
-          message.unsend((await msgSend).messageID);
-        }, 40000);
-        return;
-      }
-    }  
-                                                  
-
-
-
-    
-    let keyword = args.join(' ');
-    let numberSearch = 4;
-    const match = keyword.match(/(.+?)\s*-?(\d+)?$/);
-    if (match) {
-      keyword = match[1].trim();
-      if (match[2]) {
-        numberSearch = parseInt(match[2]);
-      }
-    }
-
-    if (!keyword) {
-      api.sendMessage("Please provide a keyword.\nExample: Pinterest cute anime boy -10", event.threadID, event.messageID);
-      return;
-    }
-
-    if (numberSearch > 20) {
-      api.sendMessage("Maximum number of search results is 20.", event.threadID, event.messageID);
-      return;
-    }
-
+  onStart: async function ({ api, event, args }) {
     try {
-      const res = await axios.get(`https://api-dien.kira1011.repl.co/pinterest?search=${encodeURIComponent(keyword)}`);
-      const data = res.data.data;
-      let num = 0;
-      const img = [];
+      const w = await api.sendMessage("🔍 | Please wait...", event.threadID);
+      const searchQuery = args.join(" ");
 
-      for (let i = 0; i < numberSearch; i++) {
-        const path = __dirname + `/tmp/${num += 1}.jpg`;
-        const getDown = (await axios.get(`${data[i]}`, { responseType: 'arraybuffer' })).data;
-        fs.writeFileSync(path, Buffer.from(getDown, 'utf-8'));
-        img.push(fs.createReadStream(path));
+      if (!searchQuery.includes("-")) {
+        return api.sendMessage(`❌ Invalid format!\nExample: {prefix}pin cat -5`, event.threadID, event.messageID);
       }
 
-      api.sendMessage({
-        body: `${numberSearch} search results for keyword: ${keyword}`,
-        attachment: img
-      }, event.threadID, event.messageID);
+      const [query, numImages] = searchQuery.split("-").map(str => str.trim());
+      const numberOfImages = parseInt(numImages);
 
-      for (let ii = 1; ii < numberSearch; ii++) {
-        fs.unlinkSync(__dirname + `/tmp/${ii}.jpg`);
+      if (isNaN(numberOfImages) || numberOfImages <= 0 || numberOfImages > 20) {
+        return api.sendMessage("❌ Please specify a number between 1 and 20.", event.threadID, event.messageID);
       }
-    } catch (err) {
-      console.error(err);
-      api.sendMessage("Your search Input in Disallowed in Pinterest.", event.threadID, event.messageID);
-      return;
+
+      // ✅ Multiple API backup
+      const apiUrls = [
+        `https://www.noobs-api.rf.gd/dipto/pinterest?search=${encodeURIComponent(query)}`,
+        `https://pin-two.vercel.app/pin?search=${encodeURIComponent(query)}`
+      ];
+
+      let imageData;
+      for (let apiUrl of apiUrls) {
+        try {
+          const response = await axios.get(apiUrl);
+          imageData = response.data.result || response.data.data;
+          if (Array.isArray(imageData) && imageData.length > 0) break;
+        } catch (error) {
+          console.error(`API failed: ${apiUrl}`);
+        }
+      }
+
+      if (!imageData || !Array.isArray(imageData) || imageData.length === 0) {
+        return api.sendMessage(`❌ No images found for "${query}".`, event.threadID, event.messageID);
+      }
+
+      const cacheFolder = path.join(__dirname, "cache");
+      if (!fs.existsSync(cacheFolder)) fs.mkdirSync(cacheFolder);
+
+      const imgData = [];
+      for (let i = 0; i < Math.min(numberOfImages, imageData.length); i++) {
+        try {
+          const imgResponse = await axios.get(imageData[i], { responseType: 'arraybuffer' });
+          const imgPath = path.join(cacheFolder, `pin_${i + 1}.jpg`);
+          await fs.outputFile(imgPath, imgResponse.data);
+          imgData.push(fs.createReadStream(imgPath));
+        } catch (error) {
+          console.error(`Error downloading image ${i + 1}:`, error);
+        }
+      }
+
+      await api.sendMessage({ attachment: imgData, body: `✅ | Here is your pictures !\nSearch base: "${query}"` }, event.threadID, event.messageID);
+
+      // ✅ Auto-delete cache images after sending
+      setTimeout(() => {
+        fs.emptyDirSync(cacheFolder);
+      }, 60000);
+
+    } catch (error) {
+      console.error(error);
+      return api.sendMessage("❌ An error occurred while fetching images.", event.threadID, event.messageID);
     }
   }
 };
-                 

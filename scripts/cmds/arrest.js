@@ -1,49 +1,76 @@
-const axios = require('axios');
-const jimp = require("jimp");
-const fs = require("fs")
+const Jimp = require("jimp");
+const fs = require("fs-extra");
+const axios = require("axios");
+const path = require("path");
 
 module.exports = {
-	config: {
-		name: "arrest",
-		aliases: ["ar"],
-		version: "1.0",
-		author: "milan-says",
-		countDown: 5,
-		role: 0,
-		shortDescription: "arret the rapist",
-		longDescription: "",
-		category: "image",
-		guide:  {
-			vi: "{pn} [@tag]",
-			en: "{pn} [@tag]"
-		}
-	},
+    config: {
+        name: "arrest",
+        aliases: ["ar"],
+        version: "1.0",
+        author: "♡︎ 𝐻𝐴𝑆𝐴𝑁 ♡︎",
+        countDown: 5,
+        role: 0,
+        shortDescription: "arrest",
+        longDescription: "Arrest the rapist",
+        category: "fun",
+        guide: "{pn} tag or reply"
+    },
 
-	onStart: async function ({ message, args,api , event, user }) {
+    onStart: async function ({ api, message, event, usersData }) {
+        const uid = event.senderID;
         const mention = Object.keys(event.mentions);
-        if (mention.length == 0) return message.reply("please mention someone");
-        else if (mention.length == 1) {
-            const one = event.senderID, two = mention[0];
-            bal(one, two).then(ptth => { message.reply({ body: "You are under arrest", attachment: fs.createReadStream(ptth) }) })
-        } else {
-            const one = mention[1], two = mention[0];
-            bal(one, two).then(ptth => { message.reply({ body: "You are under arrest", attachment: fs.createReadStream(ptth) }) })
+        const uid1 = Object.keys(event.mentions)[0];
+        const uid2 = event.messageReply ? event.messageReply.senderID : null;
+        const uids = uid1 || uid2;
+           if (!uids) return message.reply("😤 | Tag or reply to someone you want to arrest.");
+             let two = uid, one = uids;
+      
+              if (mention.length === 2) {
+                     one = mention[1];
+                     two = mention[0];
+              }
+
+ 
+
+        try {
+            const avatarURL1 = await usersData.getAvatarUrl(one);
+            const avatarURL2 = await usersData.getAvatarUrl(two);
+
+            if (!avatarURL1 || !avatarURL2) {
+                return message.reply("Couldn't fetch user avatars.");
+            }
+
+            // ছবি ডাউনলোড করা
+            const avatar1 = await Jimp.read((await axios({ url: avatarURL1, responseType: "arraybuffer" })).data);
+            const avatar2 = await Jimp.read((await axios({ url: avatarURL2, responseType: "arraybuffer" })).data);
+            
+            // ব্যাকগ্রাউন্ড সেট করা (কাস্টম ব্যাকগ্রাউন্ড ইউআরএল)
+            const background = await Jimp.read("https://i.ibb.co/LXG5dGRZ/image.jpg");
+
+            // ব্যাকগ্রাউন্ড রিসাইজ
+            background.resize(645, 475);
+            
+            // অ্যাভাটার রাউন্ড করা এবং যোগ করা
+            avatar1.resize(100, 100).circle();
+            avatar2.resize(110, 110).circle();
+            
+            background.composite(avatar1, 175, 50);  // প্রথম ইউজারের ইমেজ বসানো
+            background.composite(avatar2, 375, 20);  // দ্বিতীয় ইউজারের ইমেজ বসানো
+            
+            // ফাইল সেভ করা
+            const imagePath = path.join(__dirname, "tmp", `${one}_${two}_kiss.png`);
+            await background.writeAsync(imagePath);
+
+            // পাঠানো
+            message.reply({
+                body: "⚠️ | You are under arrest !?",
+                attachment: fs.createReadStream(imagePath)
+            }, () => fs.unlinkSync(imagePath));
+            
+        } catch (error) {
+            console.error(error);
+            message.reply("Something went wrong while generating the image.");
         }
     }
-
-
 };
-
-async function bal(one, two) {
-
-   let avone = await jimp.read(`https://graph.facebook.com/${one}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`)
-    avone.circle()
-    let avtwo = await jimp.read(`https://graph.facebook.com/${two}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`)
-    avtwo.circle()
-    let pth = "fak.png"
-    let img = await jimp.read("https://i.imgur.com/ep1gG3r.png")
-    img.resize(500, 500).composite(avone.resize(100, 100), 375, 9).composite(avtwo.resize(100, 100), 160, 92);
-
-    await img.writeAsync(pth)
-    return pth
-              }
