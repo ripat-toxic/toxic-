@@ -32,8 +32,8 @@ module.exports = {
       const startTime = new Date().getTime();
 
 
-      const a = global.GoatBot.config.api.hasan;
-      const API = `${a}/imagine?prompt=${encodeURIComponent(prompt)}`;
+     
+      const API = `https://hasan-all-apis.onrender.com/imagine?prompt=${encodeURIComponent(prompt)}`;
 
       
       const imageStream = await global.utils.getStreamFromURL(API);
